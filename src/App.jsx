@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+const withBase = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+
 const paragraphs = {
   aperture: "这不是一台做成积木样子的手机，而是一台可以继续被搭建的手机。陶瓷白机身以精密的模块网格为基础，让每一个连接点都成为下一种能力的入口。熟悉的拼搭直觉，被重新翻译成克制、可靠的工业设计。",
   detail: "真正让人记住的，是扣合瞬间的确定感。精细凸点、圆润边缘与磁吸结构共同校准手感；轻轻一扣，清脆反馈和低频冲击同时抵达，功能无需说明便已就位。",
@@ -43,7 +45,7 @@ function RealMedia({ src, alt, className = "", parallax = false, aspect, fit = "
         "--media-bg": background,
       }}
     >
-      <img src={src} alt={alt} loading={priority ? "eager" : "lazy"} decoding="async" fetchPriority={priority ? "high" : "auto"} />
+      <img src={withBase(src)} alt={alt} loading={priority ? "eager" : "lazy"} decoding="async" fetchPriority={priority ? "high" : "auto"} />
     </figure>
   );
 }
@@ -62,7 +64,7 @@ function Header({ menuOpen, setMenuOpen }) {
     <>
       <header className="site-header">
         <a className="wordmark" href="#top" aria-label="TECNO，回到页面顶部">
-          <img src="/brand/tecno-logo.svg" alt="TECNO" />
+          <img src={withBase("/brand/tecno-logo.svg")} alt="TECNO" />
         </a>
         <nav className="desktop-nav" aria-label="主导航">
           {links.map(([label, href], index) => (
@@ -250,7 +252,7 @@ function Footer() {
     <footer className="site-footer">
       <div className="site-footer__top">
         <a className="site-footer__brand" href="#top" aria-label="TECNO，回到页面顶部">
-          <img src="/brand/tecno-logo.svg" alt="TECNO" />
+          <img src={withBase("/brand/tecno-logo.svg")} alt="TECNO" />
         </a>
         <div><p>CONCEPT</p><span>MODULAR PHONE / 2026</span></div>
         <div><p>SECTIONS</p><a href="#story">概念起点</a><a href="#materials">能量色彩</a><a href="#system">模块系统</a></div>
@@ -354,7 +356,7 @@ export function App() {
             <Reveal as="h1">拼出你的能量</Reveal>
             <Reveal as="p" className="hero__subtitle" delay={100}>BUILD YOUR POWER. / MODULAR PHONE CONCEPT</Reveal>
           </div>
-          <div className="hero__media-stage"><div className="hero__media" ref={heroMediaRef}><video ref={heroVideoRef} className="hero-scroll-video" src="/media/scroll-reveal.mp4" muted playsInline preload="metadata" aria-label="TECNO 模块化概念手机设计影片" /></div></div>
+          <div className="hero__media-stage"><div className="hero__media" ref={heroMediaRef}><video ref={heroVideoRef} className="hero-scroll-video" src={withBase("/media/scroll-reveal.mp4")} muted playsInline preload="metadata" aria-label="TECNO 模块化概念手机设计影片" /></div></div>
         </section>
 
         <IntroSection />
