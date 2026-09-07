@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "./exploded-video.css";
 
-const assetUrl = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+const assetUrl = (path) => path ? `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}` : undefined;
 
 const paragraphs = {
   aperture: "这不是一台做成积木样子的手机，而是一台可以继续被搭建的手机。陶瓷白机身以精密的模块网格为基础，让每一个连接点都成为下一种能力的入口。熟悉的拼搭直觉，被重新翻译成克制、可靠的工业设计。",
