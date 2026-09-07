@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import "./exploded-video.css";
 
-const withBase = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+const assetUrl = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
 
 const paragraphs = {
   aperture: "这不是一台做成积木样子的手机，而是一台可以继续被搭建的手机。陶瓷白机身以精密的模块网格为基础，让每一个连接点都成为下一种能力的入口。熟悉的拼搭直觉，被重新翻译成克制、可靠的工业设计。",
@@ -45,11 +46,45 @@ function RealMedia({ src, alt, className = "", parallax = false, aspect, fit = "
         "--media-bg": background,
       }}
     >
-      <img src={withBase(src)} alt={alt} loading={priority ? "eager" : "lazy"} decoding="async" fetchPriority={priority ? "high" : "auto"} />
+      <img src={assetUrl(src)} alt={alt} loading={priority ? "eager" : "lazy"} decoding="async" fetchPriority={priority ? "high" : "auto"} />
     </figure>
   );
 }
 
+function ViewportVideo({ src, poster, className = "", label }) {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        const playback = video.play();
+        if (playback) playback.catch(() => {});
+      } else {
+        video.pause();
+      }
+    }, { threshold: 0.28 });
+
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      className={className}
+      src={assetUrl(src)}
+      poster={assetUrl(poster)}
+      muted
+      playsInline
+      loop
+      preload="metadata"
+      aria-label={label}
+    />
+  );
+}
 function Reveal({ as: Tag = "div", className = "", delay = 0, children, ...props }) {
   return (
     <Tag className={"reveal " + className} style={{ "--reveal-delay": delay + "ms" }} {...props}>
@@ -59,12 +94,20 @@ function Reveal({ as: Tag = "div", className = "", delay = 0, children, ...props
 }
 
 function Header({ menuOpen, setMenuOpen }) {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const updateHeader = () => setScrolled(window.scrollY > 24);
+    updateHeader();
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeader);
+  }, []);
   const links = [["概念起点", "#story"], ["能量色彩", "#materials"], ["模块系统", "#system"]];
   return (
     <>
-      <header className="site-header">
+      <header className={"site-header" + (scrolled ? " is-scrolled" : "")}>
         <a className="wordmark" href="#top" aria-label="TECNO，回到页面顶部">
-          <img src={withBase("/brand/tecno-logo.svg")} alt="TECNO" />
+          <img src={assetUrl("/brand/tecno-logo.svg")} alt="TECNO" />
         </a>
         <nav className="desktop-nav" aria-label="主导航">
           {links.map(([label, href], index) => (
@@ -107,14 +150,23 @@ function DetailSection() {
   return (
     <section className="detail-section section-pad">
       <div className="detail-section__inner">
-        <div className="detail-section__header">
-          <div className="detail-section__copy">
-            <Reveal as="p" className="eyebrow">SNAP &amp; POWER</Reveal>
-            <Reveal as="h2">轻轻一扣，能量就位</Reveal>
-            <Reveal as="p" className="detail-section__lead" delay={100}>{paragraphs.detail}</Reveal>
+        <section className="brand-morph-section detail-section__brand-morph" aria-label="LEGO 与 TECNO 动态联名标志">
+          <div className="detail-section__brand-media">
+            <ViewportVideo
+              className="brand-morph-feature"
+              src="/media/brand-morph-loop.mp4"
+              label="LEGO 与 TECNO 积木动态联名标志"
+            />
+            <figure className="detail-section__brand-character">
+              <img src={assetUrl("/media/lego-woody.jpg")} alt="牛仔造型乐高人物" loading="lazy" decoding="async" />
+            </figure>
           </div>
-          <RealMedia src="/media/handheld-module.png" alt="双手展示模块化手机与乐高扩展电池" className="detail-section__explainer" aspect="16 / 9" fit="contain" background="#fff" />
-        </div>
+          <div className="detail-section__brand-copy">
+            <Reveal as="p" className="eyebrow">CO-BUILD IDENTITY</Reveal>
+            <Reveal as="h3">一格一格，拼成共同标识</Reveal>
+            <Reveal as="p" delay={100}>红色底板承接乐高的拼搭记忆，像素化颗粒逐步组成联名标志。每个单元可以独立存在，也能沿着统一网格组合成完整系统——这正是模块化手机的设计逻辑。</Reveal>
+          </div>
+        </section>
         <div className="detail-collage">
           <RealMedia src="/media/side-profile.png" alt="模块化手机横向侧面轮廓" className="detail-collage__top" aspect="4 / 1" fit="contain" background="#fff" />
           <RealMedia src="/media/edge-profile.png" alt="模块化手机超薄侧边细节" className="detail-collage__side" aspect="4 / 1" fit="contain" background="#fff" />
@@ -128,7 +180,7 @@ function DetailSection() {
 
 function LandscapeRow({ title, subline, copy, reverse = false, slot, eyebrow = "ENERGY PALETTE" }) {
   const mediaBySlot = {
-    "CERAMIC WHITE / 03": ["/media/lego-woody.jpg", "牛仔造型乐高人物"],
+    "CERAMIC WHITE / 03": ["/media/phone-angle.png", "模块化概念手机背部斜视图"],
     "ELECTRIC BLUE / 04": ["/media/side-profile.png", "科技蓝镜头环与黄色侧键细节"],
     "RACING ORANGE / 05": ["/media/camera-closeup.png", "蓝色镜头环与竞速色触点细节"],
   };
@@ -151,21 +203,22 @@ function StructureChapter() {
       <Reveal as="p" className="eyebrow eyebrow--center">CHAPTER 03 / MODULAR GRID</Reveal>
       <Reveal as="h2">从一台手机，到可生长的平台</Reveal>
       <RealMedia src="/media/collab-lockup.png" alt="LEGO 与 TECNO 概念合作标识" className="structure-chapter__hero" aspect="16 / 7" fit="contain" background="#fff" />
-      <div className="structure-chapter__copy">
-        <Reveal as="p">{paragraphs.system}</Reveal>
-        <Reveal as="p" delay={120}>精密网格负责定位，隐藏磁体负责吸附，结构锁点负责稳定。复杂工程被收进纤薄机身，用户看到的只有清晰、快速、可以继续扩展的基础。</Reveal>
-      </div>
     </section>
   );
 }
 
-function ProductChapter({ id, title, kicker, copy, reverse = false, slot, hideMedia = false }) {
+function ProductChapter({ id, title, kicker, copy, reverse = false, slot, secondarySlot, hideMedia = false }) {
   const mediaBySlot = {
     "POWER MODULE / 09": ["/media/power-module.png", "白色积木式磁吸背夹电源模块", "4 / 5", "contain"],
     "MAGNETIC SNAP / 10": ["/media/magnetic-snap-composite.jpg", "原始手机与电源模块接近磁吸扣合", "16 / 9", "cover"],
     "RACING WORLD / 18": ["/media/racing-world-composite.jpg", "原始模块化手机置于白色积木竞速世界", "16 / 9", "cover"],
+    "CAMERA MODULE / 11": ["/media/camera-module.png", "白色积木式磁吸相机模块", "4 / 3", "contain"],
+    "POCKET PRINTER / 12": ["/media/portable-printer.png", "白色积木式便携打印机模块", "4 / 3", "contain"],
+    "EXTEND SCREEN / 13": ["/media/extend-screen-keyboard.png", "拓展屏幕展开为电子键盘", "4 / 3", "contain"],
+    "EXTEND SCREEN STANDBY / 14": ["/media/extend-screen-standby.png", "拓展屏幕作为第二显示区待机展示", "4 / 3", "contain"],
   };
   const [src, alt, aspect, fit] = mediaBySlot[slot];
+  const secondaryMedia = secondarySlot ? mediaBySlot[secondarySlot] : null;
   return (
     <section className={"product-chapter section-pad" + (reverse ? " is-reverse" : "") + (hideMedia ? " product-chapter--text-only" : "")} id={id}>
       <div className="product-chapter__copy">
@@ -173,20 +226,28 @@ function ProductChapter({ id, title, kicker, copy, reverse = false, slot, hideMe
         <Reveal as="h2">{title}</Reveal>
         <Reveal as="p" delay={110}>{copy}</Reveal>
       </div>
-      {!hideMedia && <RealMedia src={src} alt={alt} className="generated-chapter-media" aspect={aspect} fit={fit} background="#fff" />}
+      {!hideMedia && (
+        <div className={"product-chapter__media-wrap" + (secondaryMedia ? " has-secondary" : "")}>
+          <RealMedia src={src} alt={alt} className="generated-chapter-media" aspect={aspect} fit={fit} background="#fff" />
+          {secondaryMedia && (
+            <RealMedia src={secondaryMedia[0]} alt={secondaryMedia[1]} className="generated-chapter-media generated-chapter-media--secondary" aspect={secondaryMedia[2]} fit={secondaryMedia[3]} background="#fff" />
+          )}
+        </div>
+      )}
     </section>
   );
 }
-function BalanceSection() {
+function ConnectionBalanceSection() {
   return (
-    <section className="balance-section section-pad">
-      <Reveal as="p" className="eyebrow">SLIM POWER STUDY</Reveal>
-      <Reveal as="h2">增加能量，不增加负担</Reveal>
-      <div className="balance-section__media">
-        <RealMedia src="/media/side-profile.png" alt="模块化手机超薄侧面重量研究" aspect="4 / 3" fit="contain" background="#fff" />
+    <section className="connection-balance section-pad">
+      <div className="connection-balance__copy">
+        <Reveal as="p" className="eyebrow">MAGNETIC CONNECTION / SLIM POWER STUDY</Reveal>
+        <Reveal as="h2">咔哒一声，完成上电</Reveal>
+        <Reveal as="p" delay={100}>对位、减速、吸附、锁定被压缩成一次清脆反馈；超薄背夹电源贴合机身下半部，把新增重量放在握持更稳定的位置。连接后的轮廓依旧干净，功能扩展被收进一次自然扣合里。</Reveal>
+      </div>
+      <div className="connection-balance__media">
         <RealMedia src="/media/handheld-module.png" alt="双手展示原始手机与扩展电源模块" aspect="4 / 3" fit="contain" background="#fff" />
       </div>
-      <Reveal as="p" className="balance-section__copy">超薄背夹电源贴合机身下半部，把新增重量放在握持更稳定的位置。连接后的轮廓依旧干净，横屏游戏、日常手持与桌面使用都能保持自然平衡。</Reveal>
     </section>
   );
 }
@@ -196,11 +257,15 @@ function AdapterSection() {
     <section className="adapter-section section-pad">
       <Reveal as="p" className="eyebrow">ONE GRID / MORE POSSIBILITIES</Reveal>
       <Reveal as="h2">一个接口，无限搭法</Reveal>
-      <div className="adapter-section__grid">
-        <RealMedia src="/media/camera-module.png" alt="白色积木式磁吸相机模块" aspect="4 / 3" fit="contain" background="#f1f2ef" />
-        <RealMedia src="/media/portable-printer.png" alt="白色积木式便携打印机模块" aspect="4 / 3" fit="contain" background="#f1f2ef" />
-      </div>
-      <Reveal as="p">统一网格让每个模块拥有相同的对位逻辑。今天是背夹电源，未来可以是支架、游戏控制或影像配件；功能不断变化，熟悉的扣合动作始终不变。</Reveal>
+      <section className="wide-media exploded-video-section adapter-section__exploded-video">
+        <ViewportVideo
+          className="exploded-video"
+          src="/media/module-explosion.mp4"
+          poster="/media/exploded-system.png"
+          label="模块化概念手机爆炸图动画"
+        />
+      </section>
+      <Reveal as="p">统一接口先交代模块的共同语言：同一网格、同一扣合方向、同一视觉节奏。下面每一个配件都像独立积木块，分别解决续航、拍摄、即时输出与移动输入场景；功能不断变化，熟悉的扣合动作始终不变。</Reveal>
     </section>
   );
 }
@@ -252,7 +317,7 @@ function Footer() {
     <footer className="site-footer">
       <div className="site-footer__top">
         <a className="site-footer__brand" href="#top" aria-label="TECNO，回到页面顶部">
-          <img src={withBase("/brand/tecno-logo.svg")} alt="TECNO" />
+          <img src={assetUrl("/brand/tecno-logo.svg")} alt="TECNO" />
         </a>
         <div><p>CONCEPT</p><span>MODULAR PHONE / 2026</span></div>
         <div><p>SECTIONS</p><a href="#story">概念起点</a><a href="#materials">能量色彩</a><a href="#system">模块系统</a></div>
@@ -356,19 +421,16 @@ export function App() {
             <Reveal as="h1">拼出你的能量</Reveal>
             <Reveal as="p" className="hero__subtitle" delay={100}>BUILD YOUR POWER. / MODULAR PHONE CONCEPT</Reveal>
           </div>
-          <div className="hero__media-stage"><div className="hero__media" ref={heroMediaRef}><video ref={heroVideoRef} className="hero-scroll-video" src={withBase("/media/scroll-reveal.mp4")} muted playsInline preload="metadata" aria-label="TECNO 模块化概念手机设计影片" /></div></div>
+          <div className="hero__media-stage"><div className="hero__media" ref={heroMediaRef}><video ref={heroVideoRef} className="hero-scroll-video" src={assetUrl("/media/scroll-reveal.mp4")} muted playsInline preload="metadata" aria-label="TECNO 模块化概念手机设计影片" /></div></div>
         </section>
 
         <IntroSection />
-        <section className="wide-media"><RealMedia src="/media/exploded-system.png" alt="模块化概念手机双层拆解展示" parallax aspect="16 / 7" fit="contain" background="#fff" /></section>
         <DetailSection />
 
 
 
         <div className="landscape-stack" id="materials">
           <LandscapeRow eyebrow="DIY MODULAR SYSTEM" title="拼出你的手机" subline="像乐高一样，让功能与想象自由嵌合。" copy="从镜头、电源到更多功能模块，每一次扣合都像完成一块积木拼搭。标准化接口让乐高式 DIY 真正进入手机：需要什么，就装上什么；想换一种玩法，随时拆开、重组，再继续搭建。" slot="CERAMIC WHITE / 03" />
-          <LandscapeRow title="科技蓝" subline="让能量沿着接缝被看见。" copy="冷蓝光描绘电量与数据的流动路径，蓝色镜头环成为整套系统最明确的能量识别。" reverse slot="ELECTRIC BLUE / 04" />
-          <LandscapeRow title="能量黄" subline="为关键动作留下性能坐标。" copy="少量明黄集中出现在触点、提示与动力节点，以极小面积建立速度感和操作方向。" slot="RACING ORANGE / 05" />
         </div>
 
         <StructureChapter />
@@ -376,11 +438,12 @@ export function App() {
 
         <ProductChapter id="system" kicker="CHAPTER 04 / BUILD YOUR POWER" title="超薄背夹电源" copy="第一块被拼上的能力，是更长的续航。模块从机身下方精准靠近，磁吸扣合后与背部齐平；蓝色能量沿接缝亮起，额外电量即刻就位。" tone="fog" slot="POWER MODULE / 09" reverse />
 
-        <ProductChapter kicker="MAGNETIC CONNECTION" title="咔哒一声，完成上电" copy="对位、减速、吸附、锁定被压缩成一次清脆反馈。画面中的手机和电源模块均来自原始渲染，仅环境由生成模型补充。" slot="MAGNETIC SNAP / 10" hideMedia />
-        <BalanceSection />
+        <ConnectionBalanceSection />
         <AdapterSection />
+        <ProductChapter id="camera" kicker="CHAPTER 05 / CAPTURE MODULE" title="磁吸相机模块" copy="当手机进入创作场景，镜头模块变成可以随时扣上的影像积木。旅行、Vlog、细节记录或低角度拍摄时，它把更专用的成像能力交给外置模块；日常使用则保持手机轻薄。" tone="paper" slot="CAMERA MODULE / 11" />
+        <ProductChapter id="printer" kicker="CHAPTER 06 / INSTANT OUTPUT" title="便携打印模块" copy="便携打印模块把照片、便签、票据和标签从屏幕里取出来。它解决现场分享、桌面整理、灵感记录时“看得到却拿不走”的问题，让手机从记录工具变成即时输出工具。" tone="fog" slot="POCKET PRINTER / 12" reverse />
+        <ProductChapter id="extend-screen" kicker="CHAPTER 07 / EXTEND SCREEN" title="拓展屏幕 / 电子键盘" copy="拓展屏幕平时承担第二显示区：通知、资料、聊天或工具栏都可以被移出主屏。需要输入时，它展开为电子键盘，解决移动办公和文档编辑中屏幕被键盘占据、输入效率下降的问题。" tone="paper" slot="EXTEND SCREEN / 13" secondarySlot="EXTEND SCREEN STANDBY / 14" />
         <EngineeringFeature />
-        <ProductChapter kicker="PLAY LONGER" title="让能量驶入游戏世界" copy="白色赛道从机身向外延伸，科技蓝沿轨道加速，把更长续航转化成继续游戏的直接感受。" slot="RACING WORLD / 18" reverse />
         <PackagingFeature />
         <ClosingSection />
 
